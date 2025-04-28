@@ -204,32 +204,33 @@ if [[ "${runners_executor}" == "docker-autoscaler" ]]; then
   usermod -a -G docker ec2-user
   service docker start
 
-  echo "Installing Docker fleeting plugin"
-  # Determine architecture
-  if [[ "$(uname -m)" == "x86_64" ]]; then
-    ARCH="amd64"
-  elif [[ "$(uname -m)" == "i686" ]]; then
-    ARCH="386"
-  elif [[ "$(uname -m)" == "armv7l" ]]; then
-    ARCH="arm"
-  elif [[ "$(uname -m)" == "aarch64" ]]; then
-    ARCH="arm64"
-  else
-    echo "Unsupported architecture"
-    exit 1
-  fi
+  if [[ "${use_new_fleeting_install}" == "false" ]]; then
+    # Determine architecture
+    if [[ "$(uname -m)" == "x86_64" ]]; then
+      ARCH="amd64"
+    elif [[ "$(uname -m)" == "i686" ]]; then
+      ARCH="386"
+    elif [[ "$(uname -m)" == "armv7l" ]]; then
+      ARCH="arm"
+    elif [[ "$(uname -m)" == "aarch64" ]]; then
+      ARCH="arm64"
+    else
+      echo "Unsupported architecture"
+      exit 1
+    fi
 
-  wget "https://gitlab.com/gitlab-org/fleeting/plugins/aws/-/releases/v${fleeting_plugin_version}/downloads/fleeting-plugin-aws-$(uname -s | tr '[:upper:]' '[:lower:]')-$ARCH"
-  chmod +x fleeting-plugin-aws-*
-  mv fleeting-plugin-aws-* /bin/fleeting-plugin-aws
+    echo "Installing Docker fleeting plugin"
+    wget "https://gitlab.com/gitlab-org/fleeting/plugins/aws/-/releases/v${fleeting_plugin_version}/downloads/fleeting-plugin-aws-$(uname -s | tr '[:upper:]' '[:lower:]')-$ARCH"
+    chmod +x fleeting-plugin-aws-*
+    mv fleeting-plugin-aws-* /bin/fleeting-plugin-aws
 
-  mkdir ~/.aws
-  cat <<EOF > ~/.aws/config
+    mkdir ~/.aws
+    cat <<EOF > ~/.aws/config
 [default]
 region = "${aws_region}"
 
 EOF
-
+  fi
 fi
 
 # A small script to remove this runner from being registered with Gitlab. Executed at shutdown.
@@ -297,6 +298,9 @@ if ! ( rpm -q gitlab-runner >/dev/null )
 then
   curl --fail --retry 6 -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.rpm.sh | bash
   yum install gitlab-runner-${gitlab_runner_version} -y
+  if [[ "${runners_executor}" == "docker-autoscaler" ]] && [[ "${use_new_fleeting_install}" == "true" ]]; then
+    gitlab-runner fleeting install
+  fi
 fi
 
 #############################

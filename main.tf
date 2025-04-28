@@ -38,6 +38,11 @@ locals {
       extra_config        = var.runner_install.start_script
   })
 
+  runner_version_split            = split(".", var.runner_gitlab.runner_version)
+  runner_version_major            = parseint(local.runner_version_split[0], 10)
+  runner_version_minor            = parseint(local.runner_version_split[1], 10)
+  runner_use_new_fleeting_install = local.runner_version_major >= 16 && local.runner_version_minor >= 11
+
   file_yum_update = file("${path.module}/template/yum_update.tftpl")
 
   template_eip = templatefile("${path.module}/template/eip.tftpl", {
@@ -46,6 +51,7 @@ locals {
 
   template_gitlab_runner = templatefile("${path.module}/template/gitlab-runner.tftpl",
     {
+      use_new_fleeting_install                                     = local.runner_use_new_fleeting_install
       aws_region                                                   = data.aws_region.current.name
       gitlab_runner_version                                        = var.runner_gitlab.runner_version
       docker_machine_version                                       = var.runner_install.docker_machine_version
@@ -87,6 +93,7 @@ locals {
 
   template_runner_docker_autoscaler = templatefile("${path.module}/template/runner-docker-autoscaler-config.tftpl",
     {
+      plugin_to_use                 = local.runner_use_new_fleeting_install ? "aws:latest" : "fleeting-plugin-aws"
       docker_autoscaling_name       = var.runner_worker.type == "docker-autoscaler" ? aws_autoscaling_group.autoscaler[0].name : ""
       connector_config_user         = var.runner_worker_docker_autoscaler.connector_config_user
       runners_capacity_per_instance = var.runner_worker_docker_autoscaler.capacity_per_instance
