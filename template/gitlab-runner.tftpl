@@ -199,7 +199,7 @@ then
 fi
 
 if [[ "${runners_executor}" == "docker-autoscaler" ]]; then
-  echo "installing docker"
+  echo "Installing Docker by autoscaler"
   yum install docker -y
   usermod -a -G docker ec2-user
   service docker start
@@ -219,18 +219,18 @@ if [[ "${runners_executor}" == "docker-autoscaler" ]]; then
       exit 1
     fi
 
-    echo "Installing Docker fleeting plugin"
+    echo "Installing Docker fleeting-plugin-aws"
     wget "https://gitlab.com/gitlab-org/fleeting/plugins/aws/-/releases/v${fleeting_plugin_version}/downloads/fleeting-plugin-aws-$(uname -s | tr '[:upper:]' '[:lower:]')-$ARCH"
     chmod +x fleeting-plugin-aws-*
     mv fleeting-plugin-aws-* /bin/fleeting-plugin-aws
+  fi
 
-    mkdir ~/.aws
-    cat <<EOF > ~/.aws/config
+  mkdir ~/.aws
+  cat <<EOF > ~/.aws/config
 [default]
 region = "${aws_region}"
 
 EOF
-  fi
 fi
 
 # A small script to remove this runner from being registered with Gitlab. Executed at shutdown.
@@ -299,6 +299,7 @@ then
   curl --fail --retry 6 -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.rpm.sh | bash
   yum install gitlab-runner-${gitlab_runner_version} -y
   if [[ "${runners_executor}" == "docker-autoscaler" ]] && [[ "${use_new_fleeting_install}" == "true" ]]; then
+    echo "Installing gitlab-runner fleeting plugin"
     gitlab-runner fleeting install
   fi
 fi
