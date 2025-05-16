@@ -745,6 +745,8 @@ variable "runner_worker_docker_autoscaler" {
     update_interval = The interval to check with the fleeting plugin for instance updates.
     update_interval_when_expecting = The interval to check with the fleeting plugin for instance updates when expecting a state change.
     instance_ready_command = Executes this command on each instance provisioned by the autoscaler to ensure that it is ready for use. A failure results in the instance being removed.
+    instance_acquire_timeout = The maximum duration the runner waits to acquire an instance before it times out.
+    scale_throttle = limit - The rate limit of new instances per second that can provisioned. `-1` is infinite. The default (0), sets the limit to `100`. burst - The burst limit of new instances. Defaults to `max_instances` or `limit` when `max_instances` is not set. If `limit` is infinite, `burst` is ignored.
   EOT
   type = object({
     fleeting_plugin_version        = optional(string, "1.0.0")
@@ -755,6 +757,11 @@ variable "runner_worker_docker_autoscaler" {
     update_interval                = optional(string, "1m")
     update_interval_when_expecting = optional(string, "2s")
     instance_ready_command         = optional(string, "")
+    instance_acquire_timeout       = optional(string, "15m")
+    scale_throttle = optional(object({
+      burst = optional(any, null)
+      limit = optional(any, null)
+    }))
   })
   default = {}
 }

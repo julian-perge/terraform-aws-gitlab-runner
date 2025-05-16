@@ -102,12 +102,14 @@ locals {
       connector_config_user         = var.runner_worker_docker_autoscaler.connector_config_user
       runners_capacity_per_instance = var.runner_worker_docker_autoscaler.capacity_per_instance
       runners_max_use_count         = var.runner_worker_docker_autoscaler.max_use_count
+      runners_scale_throttle        = var.runner_worker_docker_autoscaler.scale_throttle
       runners_max_instances         = var.runner_worker.max_jobs
 
       runners_update_interval                = var.runner_worker_docker_autoscaler.update_interval
       runners_update_interval_when_expecting = var.runner_worker_docker_autoscaler.update_interval_when_expecting
 
-      runners_instance_ready_command = var.runner_worker_docker_autoscaler.instance_ready_command
+      runners_instance_ready_command   = var.runner_worker_docker_autoscaler.instance_ready_command
+      runners_instance_acquire_timeout = var.runner_worker_docker_autoscaler.instance_acquire_timeout
 
       use_private_key = var.runner_worker.use_private_key && var.runner_worker.type == "docker-autoscaler"
 
