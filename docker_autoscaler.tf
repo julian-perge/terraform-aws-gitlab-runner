@@ -164,7 +164,7 @@ resource "aws_autoscaling_group" "autoscaler" {
     for_each = local.tags
     content {
       key                 = tag.key
-      value               = tag.value
+      value               = tag.key == "Name" ? "${var.runner_instance.name}-worker" : tag.value
       propagate_at_launch = true
     }
   }
