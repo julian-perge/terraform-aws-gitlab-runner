@@ -21,10 +21,7 @@ listen_address = "${prometheus_listen_address}"
   output_limit = ${runners_output_limit}
   limit = ${runners_limit}
 
-  [runners.feature_flags]
-    %{~ for key, value in runners_feature_flags ~}
-      ${key} = ${value}
-    %{~ endfor ~}
+  ${runners_feature_flags}
 
   ${runners_docker_options}
 

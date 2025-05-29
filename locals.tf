@@ -81,6 +81,11 @@ locals {
     }
   )
 
+  runners_feature_flags = templatefile("${path.module}/template/runners_feature_flags.tftpl", {
+    flags = { for key, value in var.runner_worker.feature_flags : key => value if value != null }
+    }
+  )
+
   /* determines if the docker machine executable adds the Name tag automatically (versions >= 0.16.2) */
   # make sure to skip pre-release stuff in the semver by ignoring everything after "-"
   docker_machine_version_used          = split(".", split("-", var.runner_install.docker_machine_version)[0])

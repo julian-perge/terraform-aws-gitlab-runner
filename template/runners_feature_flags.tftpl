@@ -1,0 +1,4 @@
+%{ for key, value in flags ~}
+[runners.feature_flags]
+  ${key} = ${jsonencode(value)}
+%{ endfor ~}
