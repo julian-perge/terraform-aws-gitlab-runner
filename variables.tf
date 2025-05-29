@@ -530,6 +530,7 @@ variable "runner_worker" {
     ssm_access = Allows to connect to the Runner Worker via SSM.
     type = The Runner Worker type to use. Currently supports `docker+machine` or `docker` or `docker-autoscaler`.
     use_private_key = Use a private key to connect the Runner Manager to the Runner Workers. Ignored when fleeting is enabled (defaults to `true`).
+    feature_flags = Set feature flags for the runner.
   EOT
   type = object({
     environment_variables = optional(list(string), [])
@@ -541,6 +542,7 @@ variable "runner_worker" {
     # false positive, use_private_key is not a secret
     # kics-scan ignore-line
     use_private_key = optional(bool, false)
+    feature_flags   = optional(object({}), {})
   })
   default = {}
 
