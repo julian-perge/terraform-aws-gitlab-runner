@@ -82,7 +82,7 @@ locals {
   )
 
   runners_feature_flags = templatefile("${path.module}/template/runners_feature_flags.tftpl", {
-    flags = { for key, value in var.runner_worker.feature_flags : key => value if value != null }
+    flags = { for key, value in var.runner_worker_feature_flags : key => value if value != null }
     }
   )
 
