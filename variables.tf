@@ -836,7 +836,6 @@ variable "runner_worker_docker_autoscaler_asg" {
     default_instance_type                    = optional(string, "m5.large")
     types                                    = optional(list(string), [])
     upgrade_strategy                         = optional(string, "rolling")
-    suspended_processes                      = optional(list(string), ["AZRebalance"])
     instance_requirements = optional(list(object({
       allowed_instance_types = optional(list(string), [])
       cpu_manufacturers      = optional(list(string), [])
