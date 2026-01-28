@@ -111,6 +111,8 @@ resource "aws_iam_role_policy_attachment" "service_linked_role" {
 ################################################################################
 data "aws_iam_policy_document" "ssm" {
   statement {
+    # "IAM policy allows for data exfiltration": resources are specified below, so we can't access any other parameters
+    # kics-scan ignore-line
     actions = [
       "ssm:GetParameter",
       "ssm:GetParameters",
@@ -124,14 +126,14 @@ data "aws_iam_policy_document" "ssm" {
           var.runner_gitlab.preregistered_runner_token_ssm_parameter_name,
           aws_ssm_parameter.runner_registration_token.name
         ]
-      ) : "arn:${data.aws_partition.current.partition}:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter/${trimprefix(name, "/")}"
+      ) : "arn:${data.aws_partition.current.partition}:ssm:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:parameter/${trimprefix(name, "/")}"
     ]
   }
 
   statement {
     actions = ["ssm:PutParameter"]
     resources = [
-      "arn:${data.aws_partition.current.partition}:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter/${trimprefix(aws_ssm_parameter.runner_registration_token.name, "/")}"
+      "arn:${data.aws_partition.current.partition}:ssm:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:parameter/${trimprefix(aws_ssm_parameter.runner_registration_token.name, "/")}"
     ]
   }
 }

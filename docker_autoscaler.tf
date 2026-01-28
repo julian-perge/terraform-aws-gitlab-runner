@@ -10,7 +10,7 @@ resource "aws_launch_template" "this" {
   count = var.runner_worker.type == "docker-autoscaler" ? 1 : 0
 
   name          = "${local.name_runner_agent_instance}-worker-launch-template"
-  user_data     = base64gzip(var.runner_worker_docker_autoscaler_instance.start_script)
+  user_data     = var.runner_worker_docker_autoscaler_instance.start_script_compression_algorithm == "gzip" ? base64gzip(var.runner_worker_docker_autoscaler_instance.start_script) : base64encode(var.runner_worker_docker_autoscaler_instance.start_script)
   image_id      = length(var.runner_worker_docker_autoscaler_ami_id) > 0 ? var.runner_worker_docker_autoscaler_ami_id : data.aws_ami.docker_autoscaler_by_filter[0].id
   instance_type = length(var.runner_worker_docker_autoscaler_asg.types) > 0 ? var.runner_worker_docker_autoscaler_asg.types[0] : var.runner_worker_docker_autoscaler_asg.default_instance_type
   key_name      = aws_key_pair.autoscaler[0].key_name
@@ -38,7 +38,7 @@ resource "aws_launch_template" "this" {
       iops        = contains(["gp3", "io1", "io2"], var.runner_worker_docker_autoscaler_instance.volume_type) ? var.runner_worker_docker_autoscaler_instance.volume_iops : null
       throughput  = var.runner_worker_docker_autoscaler_instance.volume_type == "gp3" ? var.runner_worker_docker_autoscaler_instance.volume_throughput : null
       encrypted   = true
-      kms_key_id  = local.kms_key_arn
+      kms_key_id  = local.kms_key_arn != "" ? local.kms_key_arn : null
     }
   }
 
@@ -57,7 +57,11 @@ resource "aws_launch_template" "this" {
 
   tags = local.tags
 
+  # as per user decision. The module default is "required" for better security.
+  # tfsec:ignore:aws-ec2-enforce-launch-config-http-token-imds
   metadata_options {
+    # the module enables IMDSv2 by default, but lets the user decide
+    # kics-scan ignore-line
     http_tokens                 = var.runner_worker_docker_autoscaler_instance.http_tokens
     http_put_response_hop_limit = var.runner_worker_docker_autoscaler_instance.http_put_response_hop_limit
     instance_metadata_tags      = "enabled"

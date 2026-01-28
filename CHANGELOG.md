@@ -1,5 +1,53 @@
 # Changelog
 
+## [9.5.0](https://github.com/cattle-ops/terraform-aws-gitlab-runner/compare/9.4.0...9.5.0) (2025-10-27)
+
+
+### Features
+
+* add `connection_max_age` config ([#1340](https://github.com/cattle-ops/terraform-aws-gitlab-runner/issues/1340)) ([b65acc4](https://github.com/cattle-ops/terraform-aws-gitlab-runner/commit/b65acc4114d4e421636f8e79ba0b2de8c5b7cc5b))
+
+## [9.4.0](https://github.com/cattle-ops/terraform-aws-gitlab-runner/compare/9.3.0...9.4.0) (2025-10-20)
+
+
+### Features
+
+* add `preemptive_mode` option passthrough on docker_autoscaler ([#1344](https://github.com/cattle-ops/terraform-aws-gitlab-runner/issues/1344)) ([91a86e1](https://github.com/cattle-ops/terraform-aws-gitlab-runner/commit/91a86e125c7b88627fd54316eeff4773f39e81e0))
+
+
+### Bug Fixes
+
+* correct default terminate lambda handler value ([#1347](https://github.com/cattle-ops/terraform-aws-gitlab-runner/issues/1347)) ([57c17af](https://github.com/cattle-ops/terraform-aws-gitlab-runner/commit/57c17afe5228840ea03530548f81629c2fc505f2))
+* ensure that key pair names do not overlap ([#1338](https://github.com/cattle-ops/terraform-aws-gitlab-runner/issues/1338)) ([286de13](https://github.com/cattle-ops/terraform-aws-gitlab-runner/commit/286de13b3fa7a3cb8188ce83b9a2afd9e209f157)), closes [#1291](https://github.com/cattle-ops/terraform-aws-gitlab-runner/issues/1291)
+* use unique output file name for the lambda function ([#1336](https://github.com/cattle-ops/terraform-aws-gitlab-runner/issues/1336)) ([babfd75](https://github.com/cattle-ops/terraform-aws-gitlab-runner/commit/babfd75dccd57e82e3e2936a94cda39e7019f671))
+
+## [9.3.0](https://github.com/cattle-ops/terraform-aws-gitlab-runner/compare/9.2.4...9.3.0) (2025-10-09)
+
+
+### Features
+
+* allow different compression algorithms for user data compression ([#1332](https://github.com/cattle-ops/terraform-aws-gitlab-runner/issues/1332)) ([f89dc27](https://github.com/cattle-ops/terraform-aws-gitlab-runner/commit/f89dc27f60e35f787eef4cf697e743d43291a8d8))
+
+
+### Bug Fixes
+
+* add missing policies for the autoscaler ([#1328](https://github.com/cattle-ops/terraform-aws-gitlab-runner/issues/1328)) ([99b8605](https://github.com/cattle-ops/terraform-aws-gitlab-runner/commit/99b8605c938ad8ad85701c3f5c4935ecb5d63e1c))
+
+## [9.2.4](https://github.com/cattle-ops/terraform-aws-gitlab-runner/compare/9.2.3...9.2.4) (2025-09-11)
+
+
+### Bug Fixes
+
+* add missing policies for autoscaler ([#1319](https://github.com/cattle-ops/terraform-aws-gitlab-runner/issues/1319)) ([0c73cc7](https://github.com/cattle-ops/terraform-aws-gitlab-runner/commit/0c73cc74de36a9703b4f78de8e8a18e4f8c7337d))
+
+## [9.2.3](https://github.com/cattle-ops/terraform-aws-gitlab-runner/compare/9.2.2...9.2.3) (2025-08-14)
+
+
+### Bug Fixes
+
+* allow HTTP egress traffic to all destinations ([#1303](https://github.com/cattle-ops/terraform-aws-gitlab-runner/issues/1303)) ([62bab5a](https://github.com/cattle-ops/terraform-aws-gitlab-runner/commit/62bab5ad8539671e68415acd23839b0d468613a2))
+* handle scaling properly when capacity_per_instance &gt; 1 with docker job runners ([#1313](https://github.com/cattle-ops/terraform-aws-gitlab-runner/issues/1313)) ([91d7681](https://github.com/cattle-ops/terraform-aws-gitlab-runner/commit/91d7681792895dfdd02126c061b045eb53c8b08d))
+
 ## [9.2.2](https://github.com/cattle-ops/terraform-aws-gitlab-runner/compare/9.2.1...9.2.2) (2025-06-06)
 
 

@@ -41,9 +41,10 @@ resource "aws_s3_bucket" "build_cache" {
 resource "aws_s3_bucket_versioning" "build_cache_versioning" {
   bucket = aws_s3_bucket.build_cache.id
 
+  # ok as decided by the user
+  # tfsec:ignore:aws-s3-enable-versioning
   versioning_configuration {
     # ok as decided by the user
-    # tfsec:ignore:aws-s3-enable-versioning
     # kics-scan ignore-line
     status = var.cache_bucket_versioning ? "Enabled" : "Suspended"
   }
@@ -130,7 +131,9 @@ data "aws_iam_policy_document" "docker_machine_cache_policy" {
   statement {
     sid       = "allowGitLabRunnersAccessCache"
     effect    = "Allow"
-    resources = ["${aws_s3_bucket.build_cache.arn}/*"]
+    resources = ["${aws_s3_bucket.build_cache.arn}/*"] # tfsec:ignore:aws-iam-no-policy-wildcards # allows full access to the own bucket
+    # "IAM policy allows for data exfiltration": resources are specified below, so we can't access any other objects
+    # kics-scan ignore-line
     actions = [
       "s3:PutObject",
       "s3:PutObjectAcl",

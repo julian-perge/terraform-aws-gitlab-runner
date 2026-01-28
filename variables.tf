@@ -47,6 +47,11 @@ variable "iam_permissions_boundary" {
 variable "environment" {
   description = "A name that identifies the environment, used as prefix and for tagging."
   type        = string
+
+  validation {
+    condition     = !startswith(var.environment, "runner-")
+    error_message = "Environment name cannot begin with 'runner-' because it breaks the naming convention for ssh key pairs within the terminate-agent-hook lambda function."
+  }
 }
 
 variable "tags" {
@@ -85,12 +90,14 @@ variable "runner_manager" {
     maximum_concurrent_jobs = The maximum number of jobs which can be processed by all Runners at the same time (concurrent).
     prometheus_listen_address = Defines an address (<host>:<port>) the Prometheus metrics HTTP server should listen on (listen_address).
     sentry_dsn = Sentry DSN of the project for the Runner Manager to use (uses legacy DSN format) (sentry_dsn)
+    connection_max_age = The maximum age of a connection to the Runner Manager (connection_max_age).
   EOT
   type = object({
     gitlab_check_interval     = optional(number, 3)
     maximum_concurrent_jobs   = optional(number, 10)
     prometheus_listen_address = optional(string, "")
     sentry_dsn                = optional(string, "__SENTRY_DSN_REPLACED_BY_USER_DATA__")
+    connection_max_age        = optional(string, "15m")
   })
   default = {}
 }
@@ -358,18 +365,18 @@ variable "runner_cloudwatch" {
 }
 
 variable "runner_gitlab_registration_config" {
-  description = "(deprecated, replaced by runner_gitlab.preregistered_runner_token_ssm_parameter_name) Configuration used to register the Runner. See the README for an example, or reference the examples in the examples directory of this repo. There is also a good GitLab documentation available at: https://docs.gitlab.com/ee/ci/runners/configure_runners.html"
+  description = "(deprecated, replaced by runner_gitlab.preregistered_runner_token_ssm_parameter_name) Register the Runner manually with GitLab first."
   type = object({
-    registration_token = optional(string, "__GITLAB_REGISTRATION_TOKEN_FROM_SSM__") # deprecated, removed in 8.0.0
-    tag_list           = optional(string, "")                                       # deprecated, removed in 8.0.0
-    description        = optional(string, "")                                       # deprecated, removed in 8.0.0
-    type               = optional(string, "")                                       # mandatory if gitlab_runner_version >= 16.0.0 # deprecated, removed in 8.0.0
-    group_id           = optional(string, "")                                       # mandatory if type is group # deprecated, removed in 8.0.0
-    project_id         = optional(string, "")                                       # mandatory if type is project # deprecated, removed in 8.0.0
-    locked_to_project  = optional(string, "")                                       # deprecated, removed in 8.0.0
-    run_untagged       = optional(string, "")                                       # deprecated, removed in 8.0.0
-    maximum_timeout    = optional(string, "")                                       # deprecated, removed in 8.0.0
-    access_level       = optional(string, "not_protected")                          # this is the only mandatory field calling the GitLab get token for executor operation # deprecated, removed in 8.0.0
+    registration_token = optional(string, "__GITLAB_REGISTRATION_TOKEN_FROM_SSM__") # deprecated, do not use, will be removed
+    tag_list           = optional(string, "")                                       # deprecated, do not use, will be removed
+    description        = optional(string, "")                                       # deprecated, do not use, will be removed
+    type               = optional(string, "")                                       # deprecated, do not use, will be removed
+    group_id           = optional(string, "")                                       # deprecated, do not use, will be removed
+    project_id         = optional(string, "")                                       # deprecated, do not use, will be removed
+    locked_to_project  = optional(string, "")                                       # deprecated, do not use, will be removed
+    run_untagged       = optional(string, "")                                       # deprecated, do not use, will be removed
+    maximum_timeout    = optional(string, "")                                       # deprecated, do not use, will be removed
+    access_level       = optional(string, "not_protected")                          # deprecated, do not use, will be removed
   })
 
   default = {}
@@ -385,21 +392,21 @@ variable "runner_gitlab" {
   description = <<-EOT
     ca_certificate = Trusted CA certificate bundle (PEM format).
     certificate = Certificate of the GitLab instance to connect to (PEM format).
-    registration_token = (deprecated, This is replaced by the `registration_token` in `runner_gitlab_registration_config`.) Registration token to use to register the Runner.
+    registration_token = (deprecated, this is replaced by the `preregistered_runner_token_ssm_parameter_name`) Registration token to use to register the Runner.
     runner_version = Version of the [GitLab Runner](https://gitlab.com/gitlab-org/gitlab-runner/-/releases). Make sure that it is available for your AMI. See https://packages.gitlab.com/app/runner/gitlab-runner/search?dist=amazon%2F2023&filter=rpms&page=1&q=
     url = URL of the GitLab instance to connect to.
     url_clone = URL of the GitLab instance to clone from. Use only if the agent can’t connect to the GitLab URL.
-    access_token_secure_parameter_store_name = (deprecated) The name of the SSM parameter to read the GitLab access token from. It must have the `api` scope and be pre created.
+    access_token_secure_parameter_store_name = (deprecated, this is replaced by the `preregistered_runner_token_ssm_parameter_name`) The name of the SSM parameter to read the GitLab access token from. It must have the `api` scope and be pre created.
     preregistered_runner_token_ssm_parameter_name = The name of the SSM parameter to read the preregistered GitLab Runner token from.
   EOT
   type = object({
     ca_certificate                                = optional(string, "")
     certificate                                   = optional(string, "")
-    registration_token                            = optional(string, "__REPLACED_BY_USER_DATA__") # deprecated, removed in 8.0.0
+    registration_token                            = optional(string, "__REPLACED_BY_USER_DATA__") # deprecated, do not use, will be removed
     runner_version                                = optional(string, "16.0.3")
     url                                           = optional(string, "")
     url_clone                                     = optional(string, "")
-    access_token_secure_parameter_store_name      = optional(string, "gitlab-runner-access-token") # deprecated, removed in 8.0.0
+    access_token_secure_parameter_store_name      = optional(string, "gitlab-runner-access-token") # deprecated, do not use, will be removed
     preregistered_runner_token_ssm_parameter_name = optional(string, "")
   })
 }
@@ -782,25 +789,33 @@ variable "runner_worker_docker_autoscaler_instance" {
     root_device_name = The name of the root volume for the Runner Worker.
     root_size = The size of the root volume for the Runner Worker.
     start_script = Cloud-init user data that will be passed to the Runner Worker. Should not be base64 encrypted.
+    start_script_compression_algorithm = `gzip` compress the start script to mitigate the ~16 KB user data limit. Use `none` for Windows (EC2Launch does not support gzipped user data).
     volume_type = The type of volume to use for the Runner Worker. `gp2`, `gp3`, `io1` or `io2` are supported.
     volume_iops = Guaranteed IOPS for the volume. Only supported when using `gp3`, `io1` or `io2` as `volume_type`.
     volume_throughput = Throughput in MB/s for the volume. Only supported when using `gp3` as `volume_type`.
 EOT
 
   type = object({
-    ebs_optimized               = optional(bool, true)
-    http_tokens                 = optional(string, "required")
-    http_put_response_hop_limit = optional(number, 2)
-    monitoring                  = optional(bool, false)
-    private_address_only        = optional(bool, true)
-    root_device_name            = optional(string, "/dev/sda1")
-    root_size                   = optional(number, 8)
-    start_script                = optional(string, "")
-    volume_type                 = optional(string, "gp2")
-    volume_throughput           = optional(number, 125)
-    volume_iops                 = optional(number, 3000)
+    ebs_optimized = optional(bool, true)
+    # TODO should always be "required", right? https://aquasecurity.github.io/tfsec/v1.28.0/checks/aws/ec2/enforce-launch-config-http-token-imds/
+    http_tokens                        = optional(string, "required")
+    http_put_response_hop_limit        = optional(number, 2)
+    monitoring                         = optional(bool, false)
+    private_address_only               = optional(bool, true)
+    root_device_name                   = optional(string, "/dev/sda1")
+    root_size                          = optional(number, 8)
+    start_script                       = optional(string, "")
+    start_script_compression_algorithm = optional(string, "gzip")
+    volume_type                        = optional(string, "gp2")
+    volume_throughput                  = optional(number, 125)
+    volume_iops                        = optional(number, 3000)
   })
   default = {}
+
+  validation {
+    condition     = contains(["gzip", "none"], var.runner_worker_docker_autoscaler_instance.start_script_compression_algorithm)
+    error_message = "The start_script_compression_algorithm supports `gzip` or `none`"
+  }
 }
 
 variable "runner_worker_docker_autoscaler_asg" {
@@ -949,6 +964,20 @@ variable "runner_worker_egress_rules" {
       to_port         = 443
       protocol        = "tcp"
       description     = "Allow HTTPS egress traffic to all destinations (IPv6)"
+    },
+    allow_http_ipv4 = {
+      cidr_block  = "0.0.0.0/0"
+      from_port   = 80
+      to_port     = 80
+      protocol    = "tcp"
+      description = "Allow HTTP egress traffic to all destinations (IPv4)"
+    },
+    allow_http_ipv6 = {
+      ipv6_cidr_block = "::/0"
+      from_port       = 80
+      to_port         = 80
+      protocol        = "tcp"
+      description     = "Allow HTTP egress traffic to all destinations (IPv6)"
     },
     allow_ssh_ipv4 = {
       cidr_block  = "0.0.0.0/0"
@@ -1150,6 +1179,7 @@ variable "runner_worker_docker_autoscaler_autoscaling_options" {
     idle_time          = optional(string)
     scale_factor       = optional(number)
     scale_factor_limit = optional(number, 0)
+    preemptive_mode    = optional(bool)
   }))
   default = []
 }

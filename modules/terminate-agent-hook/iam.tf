@@ -84,7 +84,7 @@ data "aws_iam_policy_document" "lambda" {
     actions = [
       "ec2:TerminateInstances"
     ]
-    resources = ["arn:${data.aws_partition.current.partition}:ec2:${data.aws_region.this.name}:${data.aws_caller_identity.this.account_id}:instance/*"]
+    resources = ["arn:${data.aws_partition.current.partition}:ec2:${data.aws_region.this.region}:${data.aws_caller_identity.this.account_id}:instance/*"]
     condition {
       test     = "StringLike"
       variable = "ec2:ResourceTag/gitlab-runner-parent-id"
@@ -136,7 +136,7 @@ data "aws_iam_policy_document" "lambda" {
     actions = [
       "ec2:DeleteKeyPair"
     ]
-    resources = ["*"]
+    resources = ["*"] # tfsec:ignore:aws-iam-no-policy-wildcards # condition provides adequate restriction
     condition {
       test     = "StringLike"
       variable = "ec2:KeyPairName"
@@ -157,7 +157,7 @@ data "aws_iam_policy_document" "spot_request_housekeeping" {
       "ec2:DescribeSpotInstanceRequests"
     ]
     # I didn't found any condition to limit the access
-    resources = ["*"]
+    resources = ["*"] # tfsec:ignore:aws-iam-no-policy-wildcards:exp:2026-06-01 # I didn't found any condition to limit the access
   }
 }
 

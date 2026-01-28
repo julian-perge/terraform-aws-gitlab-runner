@@ -5,13 +5,13 @@
 # terminating orphaned runner instances.
 # ----------------------------------------------------------------------------
 locals {
-  source_sha256 = filesha256("${path.module}/lambda/lambda_function.py")
+  source_sha256 = filesha256("${path.module}/lambda/terminate_runners.py")
 }
 
 data "archive_file" "terminate_runner_instances_lambda" {
   type             = "zip"
-  source_file      = "${path.module}/lambda/lambda_function.py"
-  output_path      = "builds/lambda_function_${local.source_sha256}.zip"
+  source_file      = "${path.module}/lambda/terminate_runners.py"
+  output_path      = "${path.module}/builds/${var.environment}/${var.name}/terminate-agent-hook_${local.source_sha256}.zip"
   output_file_mode = "0666"
 }
 
@@ -43,8 +43,8 @@ resource "aws_vpc_security_group_egress_rule" "docker_autoscaler_egress" {
 }
 
 # tracing functions can be activated by the user
-# tfsec:ignore:aws-lambda-enable-tracing
 # kics-scan ignore-line
+# tfsec:ignore:aws-lambda-enable-tracing
 resource "aws_lambda_function" "terminate_runner_instances" {
   #ts:skip=AC_AWS_0485:Tracing functions can be activated by the user
   # checkov:skip=CKV_AWS_50:Tracing functions can be activated by the user
@@ -52,7 +52,7 @@ resource "aws_lambda_function" "terminate_runner_instances" {
   # checkov:skip=CKV_AWS_116:We should think about having a dead letter queue for this lambda
   # checkov:skip=CKV_AWS_272:Code signing would be a nice enhancement, but I guess we can live without it here
   architectures    = ["arm64"]
-  description      = "Lifecycle hook for terminating GitLab runner agent instances"
+  description      = "Lifecycle hook for terminating GitLab runner instances"
   filename         = data.archive_file.terminate_runner_instances_lambda.output_path
   source_code_hash = data.archive_file.terminate_runner_instances_lambda.output_base64sha256
   function_name    = "${var.environment}-${var.name}"

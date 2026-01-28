@@ -55,7 +55,7 @@ locals {
 
   template_gitlab_runner = templatefile("${path.module}/template/gitlab-runner.tftpl",
     {
-      aws_region                                                   = data.aws_region.current.name
+      aws_region                                                   = data.aws_region.current.region
       gitlab_runner_version                                        = var.runner_gitlab.runner_version
       docker_machine_version                                       = var.runner_install.docker_machine_version
       docker_machine_download_url                                  = var.runner_install.docker_machine_download_url
@@ -74,7 +74,7 @@ locals {
       secure_parameter_store_runner_token_key                      = local.secure_parameter_store_runner_token_key
       secure_parameter_store_runner_sentry_dsn                     = local.secure_parameter_store_runner_sentry_dsn
       secure_parameter_store_gitlab_token_name                     = var.runner_gitlab.access_token_secure_parameter_store_name
-      secure_parameter_store_region                                = data.aws_region.current.name
+      secure_parameter_store_region                                = data.aws_region.current.region
       gitlab_runner_registration_token                             = var.runner_gitlab_registration_config.registration_token
       gitlab_runner_description                                    = var.runner_gitlab_registration_config["description"]
       gitlab_runner_tag_list                                       = var.runner_gitlab_registration_config["tag_list"]
@@ -122,7 +122,7 @@ locals {
 
   template_runner_config = templatefile("${path.module}/template/runner-config.tftpl",
     {
-      aws_region       = data.aws_region.current.name
+      aws_region       = data.aws_region.current.region
       gitlab_url       = var.runner_gitlab.url
       gitlab_clone_url = var.runner_gitlab.url_clone
       tls_ca_file      = length(var.runner_gitlab.certificate) > 0 ? "tls-ca-file=\"/etc/gitlab-runner/certs/gitlab.crt\"" : ""
@@ -135,7 +135,7 @@ locals {
       runners_name                   = var.runner_instance.name
       runners_token                  = var.runner_gitlab.registration_token
       runners_executor               = var.runner_worker.type
-      runners_limit                  = var.runner_worker.max_jobs
+      runners_limit                  = var.runner_worker.type == "docker-autoscaler" ? var.runner_worker.max_jobs * var.runner_worker_docker_autoscaler.capacity_per_instance : var.runner_worker.max_jobs
       runners_concurrent             = var.runner_manager.maximum_concurrent_jobs
       runners_environment_vars       = jsonencode(var.runner_worker.environment_variables)
       runners_pre_build_script       = var.runner_worker_gitlab_pipeline.pre_build_script
@@ -153,6 +153,7 @@ locals {
       shared_cache                   = var.runner_worker_cache.shared
       sentry_dsn                     = var.runner_manager.sentry_dsn
       prometheus_listen_address      = var.runner_manager.prometheus_listen_address
+      connection_max_age             = var.runner_manager.connection_max_age
       auth_type                      = var.runner_worker_cache.authentication_type
       runners_docker_autoscaler      = var.runner_worker.type == "docker-autoscaler" ? local.template_runner_docker_autoscaler : ""
       runners_docker_machine         = var.runner_worker.type == "docker+machine" ? local.template_runner_docker_machine : ""
@@ -360,8 +361,11 @@ resource "aws_iam_instance_profile" "instance" {
   tags = local.tags
 }
 
+# "AWS EIP not attached to any instance": we attach it via user-data script
+# kics-scan ignore-block
 resource "aws_eip" "gitlab_runner" {
   # checkov:skip=CKV2_AWS_19:We can't use NAT gateway here as we are contacted from the outside.
+  # checkov:skip=CKV2_AWS_20:We can't use NAT gateway here as we are contacted from the outside.
   count = var.runner_instance.use_eip ? 1 : 0
 
   tags = local.tags

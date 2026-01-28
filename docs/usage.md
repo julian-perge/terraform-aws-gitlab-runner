@@ -6,7 +6,7 @@ Common pitfalls are documented in [pitfalls.md](pitfalls.md).
 
 The examples are configured with defaults that should work in general. The examples are in general configured for the
 region Ireland `eu-west-1`. The only parameter that needs to be provided is the name of a SSM parameter holding the Runner
-registration token and the URL of your GitLab instance. The Runner token is created in GitLab during the Runner registration process.
+registration token and the URL of your GitLab instance. The Runner token is created in GitLab manually during the Runner registration process.
 Create a file `terraform.tfvars` and put the Runner registration token in the SSM parameter.
 
 ```hcl
@@ -17,10 +17,6 @@ gitlab_url   = "https://my.gitlab.instance/"
 The base image used to host the GitLab Runner agent is the latest available Amazon Linux 2 HVM EBS AMI. In previous versions of
 this module a hard coded list of AMIs per region was provided. This list has been replaced by a search filter to find the latest
 AMI. Setting the filter to `amzn2-ami-hvm-2.0.20200207.1-x86_64-ebs` will allow you to version lock the target AMI if needed.
-
-The Runner uses a token to register with GitLab. This token is stored in the AWS SSM parameter store. The token has to be created
-manually in GitLab and stored in the SSM parameter store. All other registration methods are deprecated and will be removed in
-v8.0.0.
 
 ## Install the module
 
@@ -49,7 +45,6 @@ module "runner" {
   # https://registry.terraform.io/modules/cattle-ops/gitlab-runner/aws/
   source  = "cattle-ops/gitlab-runner/aws"
 
-  aws_region  = "eu-west-1"
   environment = "spot-runners"
 
   vpc_id    = module.vpc.vpc_id
@@ -146,76 +141,55 @@ module "runner" {
 
 ### Scenario: Use of Docker autoscaler
 
-As docker machine is no longer maintained by docker, gitlab recently developed docker autoscaler to replace docker machine
-(still in beta). An option is available to test it out.
+As docker machine is no longer maintained by Docker, GitLab recently developed docker autoscaler to replace docker machine.
 
-Tested with amazon-linux-2-x86 as runner manager and ubuntu-server-22-lts-x86 for runner worker. The following commands have been
-added to the original AMI for the runner worker for the docker-autoscaler to work correctly:
+Tested with amazon-linux-2-x86 as runner manager and ubuntu-server-22-lts-x86 for runner worker. The main problem is to find an AMI
+which has the Docker engine pre-installed. This means that any "base" Amazon Linux or Ubuntu AMI cannot work.
 
-```bash
-# Install docker
-# Add Docker's official GPG key:
-apt-get update
-apt-get install -y ca-certificates curl
-install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-chmod a+r /etc/apt/keyrings/docker.asc
-
-# Add the repository to Apt sources:
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-  tee /etc/apt/sources.list.d/docker.list > /dev/null
-apt-get update
-
-apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-usermod -aG docker ubuntu
-```
+There is a project in the early alpha phase to support you to build your own AMI: https://github.com/cattle-ops/AWS-Fleeting-Plugin-AMI
 
 #### Docker Autoscaler Configuration
 
 ```hcl
 module "runner" {
-  # https://registry.terraform.io/modules/cattle-ops/gitlab-runner/aws/
-  source  = "cattle-ops/gitlab-runner/aws"
+  source = "cattle-ops/gitlab-runner/aws"
 
-  vpc_id    = module.vpc.vpc_id
+  vpc_id = module.vpc.vpc_id
   subnet_id = element(module.vpc.private_subnets, 0)
 
   runner_gitlab = {
-    tag_list = "runner_worker"
-    type     = "instance"
     url      = "https://gitlab.com"
-
     preregistered_runner_token_ssm_parameter_name = "my-gitlab-runner-token-ssm-parameter-name"
   }
-  
-  runner_manager = {
-    maximum_concurrent_jobs   = 5
+
+  runner_ami_filter = {
+    name = ["amazon-linux-2-x86"]
   }
 
+  runner_ami_owners = ["amazon"]
+  
   runner_worker = {
     max_jobs            = 5
     request_concurrency = 5
-    type                = "docker_autoscaler"
+    type                = "docker-autoscaler"
   }
 
   runner_worker_docker_autoscaler_asg = {
     on_demand_percentage_above_base_capacity = 0
     enable_mixed_instances_policy            = true
-    idle_time                                = 600
-    subnet_ids                               = vpc.private_subnets_ids
-    types                                    = ["t3a.medium", "t3.medium"]
-    volume_type                              = "gp3"
-    private_address_only                     = true
-    ebs_optimized                            = true
-    root_size                                = 40
+    subnet_ids                               = module.vpc.private_subnets
+    types = ["t3a.medium", "t3.medium"]
   }
 
   runner_worker_docker_autoscaler = {
-    connector_config_user = "ubuntu"
+    connector_config_user = "ubuntu" # this user id is used to connect to the instance via SSH
   }
 
+  runner_worker_docker_autoscaler_ami_filter = {
+    name = ["ubuntu-server-22-lts-x86-*"]
+  }
+
+  runner_worker_docker_autoscaler_ami_owners = ["099720109477"] # Canonical
 }
 ```
 

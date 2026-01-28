@@ -5,7 +5,9 @@
             "Effect": "Allow",
             "Action": [
                 "autoscaling:SetDesiredCapacity",
-                "autoscaling:TerminateInstanceInAutoScalingGroup"
+                "autoscaling:TerminateInstanceInAutoScalingGroup",
+                "autoscaling:CompleteLifecycleAction",
+                "autoscaling:DescribeLifecycleHooks"
             ],
             "Resource": "${autoscaler_asg_arn}"
         },
@@ -13,7 +15,9 @@
             "Effect": "Allow",
             "Action": [
                 "autoscaling:DescribeAutoScalingGroups",
-                "ec2:DescribeInstances"
+                "ec2:DescribeInstances",
+                "ec2:DescribeSpotInstanceRequests",
+                "ec2:DescribeTags"
             ],
             "Resource": "*"
         },
